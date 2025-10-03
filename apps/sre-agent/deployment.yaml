@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sre-agent
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sre-agent
+  template:
+    metadata:
+      labels:
+        app: sre-agent
+    spec:
+      serviceAccountName: sre-agent-sa # 使用我们上面创建的ServiceAccount
+      containers:
+      - name: agent
+        image: sre-agent:v1.0 # 使用我们本地构建的镜像
+        imagePullPolicy: IfNotPresent # !! 关键：告诉K8s如果本地有镜像就不要去远程拉取
