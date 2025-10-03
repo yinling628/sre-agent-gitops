@@ -1,3 +1,8 @@
+# 阻止Helm Chart自己创建命名空间
+# 我们将这个责任交给Argo CD的 syncOptions
+namespace:
+  create: false
+
 # 在这里覆盖默认的Helm Chart值
 grafana:
   service:
