@@ -1,0 +1,12 @@
+# 在这里覆盖默认的Helm Chart值
+grafana:
+  service:
+    type: NodePort
+
+prometheus:
+  service:
+    type: NodePort
+    
+alertmanager:
+  service:
+    type: NodePort
