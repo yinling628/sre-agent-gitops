@@ -3,21 +3,19 @@ kind: Namespace
 metadata:
   name: ai-services
 ---
-# --- 新增：直接定义一个PV指向宿主机路径 ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: ollama-pv
 spec:
-  # PV的容量
   capacity:
     storage: 10Gi
-  # 访问模式
   accessModes:
     - ReadWriteOnce
-  # 回收策略：Retain表示删除PVC后，数据保留在宿主机上
   persistentVolumeReclaimPolicy: Retain
-  # 卷的类型是hostPath，指向我们在所有节点上创建的目录
+  # --- 关键改动 ---
+  storageClassName: local-hostpath # 1. 给PV指定一个明确的类名
+  # -----------------
   hostPath:
     path: "/data/ollama-models"
 ---
@@ -29,11 +27,14 @@ metadata:
 spec:
   accessModes:
     - ReadWriteOnce
+  # --- 关键改动 ---
+  storageClassName: local-hostpath # 2. PVC申请同一个明确的类名
+  # -----------------
   resources:
     requests:
       storage: 10Gi
-  # 省略storageClassName，让K8s自动绑定到我们上面创建的PV
 ---
+# ... Deployment和Service部分保持不变 ...
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -60,7 +61,6 @@ spec:
         persistentVolumeClaim:
           claimName: ollama-pvc
 ---
-# ... Service部分保持不变 ...
 apiVersion: v1
 kind: Service
 metadata:
