@@ -1,3 +1,4 @@
+# apps/milvus/pv.yaml
 # --- 为etcd创建PV ---
 apiVersion: v1
 kind: PersistentVolume
@@ -7,9 +8,8 @@ spec:
   capacity: { storage: 10Gi }
   accessModes: [ReadWriteOnce]
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-milvus-etcd
+  # storageClassName: local-milvus-etcd # <-- 删除这一行
   hostPath: { path: "/data/milvus-etcd" }
-
 ---
 # --- 为minio创建PV ---
 apiVersion: v1
@@ -20,18 +20,17 @@ spec:
   capacity: { storage: 20Gi }
   accessModes: [ReadWriteOnce]
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-milvus-minio
+  # storageClassName: local-milvus-minio # <-- 删除这一行
   hostPath: { path: "/data/milvus-minio" }
-
 ---
-# --- 新增：为standalone组件创建PV ---
+# --- 为standalone组件创建PV ---
 apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: milvus-standalone-pv
 spec:
-  capacity: { storage: 50Gi } # standalone的默认申请是50Gi
+  capacity: { storage: 50Gi }
   accessModes: [ReadWriteOnce]
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: local-milvus-standalone # 使用一个新的唯一类名
+  # storageClassName: local-milvus-standalone # <-- 删除这一行
   hostPath: { path: "/data/milvus-standalone" }
