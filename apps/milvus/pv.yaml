@@ -1,0 +1,30 @@
+# --- 为etcd创建PV ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: milvus-etcd-pv
+spec:
+  capacity:
+    storage: 10Gi # 容量必须大于或等于PVC的申请
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-milvus-etcd # 使用一个唯一的、自定义的类名
+  hostPath:
+    path: "/data/milvus-etcd"
+
+---
+# --- 为minio创建PV ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: milvus-minio-pv
+spec:
+  capacity:
+    storage: 20Gi # Minio的默认申请是20Gi，所以我们提供20Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: local-milvus-minio # 另一个唯一的类名
+  hostPath:
+    path: "/data/milvus-minio"
