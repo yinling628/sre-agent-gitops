@@ -3,23 +3,36 @@ kind: Namespace
 metadata:
   name: ai-services
 ---
-# --- 新增：定义一个PVC来申请存储 ---
+# --- 新增：直接定义一个PV指向宿主机路径 ---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: ollama-pv
+spec:
+  # PV的容量
+  capacity:
+    storage: 10Gi
+  # 访问模式
+  accessModes:
+    - ReadWriteOnce
+  # 回收策略：Retain表示删除PVC后，数据保留在宿主机上
+  persistentVolumeReclaimPolicy: Retain
+  # 卷的类型是hostPath，指向我们在所有节点上创建的目录
+  hostPath:
+    path: "/data/ollama-models"
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: ollama-pvc
   namespace: ai-services
 spec:
-  # 我们需要一个支持“ReadWriteOnce”的卷，即一次只能被一个Pod挂载
   accessModes:
     - ReadWriteOnce
-  # Kubernetes会根据这个类来寻找合适的PV，local-path是常见的本地存储类
-  # 如果你的集群没有默认的StorageClass，可以省略或设置为 ""
-  storageClassName: "" # 使用默认或无
-  # 申请10Gi的存储空间
   resources:
     requests:
       storage: 10Gi
+  # 省略storageClassName，让K8s自动绑定到我们上面创建的PV
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -28,38 +41,26 @@ metadata:
   namespace: ai-services
 spec:
   replicas: 1
-  # --- 新增：修改部署策略为Recreate ---
-  # 当更新时，先删除旧Pod再创建新Pod。这对于使用本地存储(hostPath)的单副本应用更安全
-  strategy:
-    type: Recreate
-  # -----------------------------------
-  selector:
-    matchLabels:
-      app: ollama
+  strategy: { type: Recreate }
+  selector: { matchLabels: { app: ollama } }
   template:
     metadata:
-      labels:
-        app: ollama
+      labels: { app: ollama }
     spec:
       containers:
       - name: ollama
         image: ollama/ollama:latest
         ports:
         - containerPort: 11434
-        # --- 新增：将PVC挂载到容器内 ---
         volumeMounts:
         - name: ollama-storage
-          # Ollama在容器内存储模型的默认路径是 /root/.ollama
           mountPath: /root/.ollama
-        # ---------------------------------
-      # --- 新增：定义Pod要使用的Volume ---
       volumes:
       - name: ollama-storage
-        # 这个Volume的数据来自我们上面定义的PVC
         persistentVolumeClaim:
           claimName: ollama-pvc
-      # ---------------------------------
 ---
+# ... Service部分保持不变 ...
 apiVersion: v1
 kind: Service
 metadata:
@@ -67,8 +68,7 @@ metadata:
   namespace: ai-services
 spec:
   type: NodePort
-  selector:
-    app: ollama
+  selector: { app: ollama }
   ports:
   - port: 11434
     targetPort: 11434
