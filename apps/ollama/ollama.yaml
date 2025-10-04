@@ -3,6 +3,24 @@ kind: Namespace
 metadata:
   name: ai-services
 ---
+# --- 新增：定义一个PVC来申请存储 ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ollama-pvc
+  namespace: ai-services
+spec:
+  # 我们需要一个支持“ReadWriteOnce”的卷，即一次只能被一个Pod挂载
+  accessModes:
+    - ReadWriteOnce
+  # Kubernetes会根据这个类来寻找合适的PV，local-path是常见的本地存储类
+  # 如果你的集群没有默认的StorageClass，可以省略或设置为 ""
+  storageClassName: "" # 使用默认或无
+  # 申请10Gi的存储空间
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,6 +28,11 @@ metadata:
   namespace: ai-services
 spec:
   replicas: 1
+  # --- 新增：修改部署策略为Recreate ---
+  # 当更新时，先删除旧Pod再创建新Pod。这对于使用本地存储(hostPath)的单副本应用更安全
+  strategy:
+    type: Recreate
+  # -----------------------------------
   selector:
     matchLabels:
       app: ollama
@@ -23,6 +46,19 @@ spec:
         image: ollama/ollama:latest
         ports:
         - containerPort: 11434
+        # --- 新增：将PVC挂载到容器内 ---
+        volumeMounts:
+        - name: ollama-storage
+          # Ollama在容器内存储模型的默认路径是 /root/.ollama
+          mountPath: /root/.ollama
+        # ---------------------------------
+      # --- 新增：定义Pod要使用的Volume ---
+      volumes:
+      - name: ollama-storage
+        # 这个Volume的数据来自我们上面定义的PVC
+        persistentVolumeClaim:
+          claimName: ollama-pvc
+      # ---------------------------------
 ---
 apiVersion: v1
 kind: Service
@@ -34,6 +70,5 @@ spec:
   selector:
     app: ollama
   ports:
-  - protocol: TCP
-    port: 11434
+  - port: 11434
     targetPort: 11434
